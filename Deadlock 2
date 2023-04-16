@@ -1,0 +1,49 @@
+# Initialize variables
+n = int(input("Enter the number of processes: "))
+m = int(input("Enter the number of resources: "))
+allocation = []
+max_resources = []
+available = []
+need = []
+sequence = []
+
+# Initialize allocation and max_resources matrices
+for i in range(n):
+    allocation.append([0] * m)
+    max_resources.append([0] * m)
+
+# Get allocation and max_resources matrices from user input
+for i in range(n):
+    print(f"Enter the allocation matrix for process {i + 1}:")
+    allocation[i] = list(map(int, input().split()))
+
+    print(f"Enter the max_resources matrix for process {i + 1}:")
+    max_resources[i] = list(map(int, input().split()))
+
+    # Calculate need matrix
+    need.append([max_resources[i][j] - allocation[i][j] for j in range(m)])
+
+# Get available resources from user input
+print("Enter the available resources:")
+available = list(map(int, input().split()))
+
+# Initialize finish vector
+finish = [False] * n
+
+# Find safe sequence
+while not all(finish):
+    found = False
+    for i in range(n):
+        if not finish[i] and all([need[i][j] <= available[j] for j in range(m)]):
+            sequence.append(i + 1)
+            finish[i] = True
+            available = [available[j] + allocation[i][j] for j in range(m)]
+            found = True
+    if not found:
+        break
+
+if all(finish):
+    print("System is in safe state.")
+    print(f"Safe sequence is: {sequence}")
+else:
+    print("System is in deadlock state.")
