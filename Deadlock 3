@@ -1,0 +1,89 @@
+from collections import deque
+
+def detect_cycle(graph, start):
+    visited = set()
+    stack = deque([(start, None)])
+    while stack:
+        node, parent = stack.pop()
+        if node in visited:
+            return True
+        visited.add(node)
+        for neighbor in graph[node]:
+            if neighbor != parent:
+                stack.append((neighbor, node))
+    return False
+
+def satisfy_needs(graph, alloc_matrix, req_matrix, resource_count):
+    graph_copy = {i: set(graph[i]) for i in range(resource_count)}
+    holds = [set() for _ in range(resource_count)]
+    processes = set(range(len(alloc_matrix)))
+    finished = set()
+
+    while processes - finished:
+        # Find a process that can be completed with the current available resources
+        queue = deque(processes - finished)
+        while queue:
+            node = queue.popleft()
+            if all(req_matrix[node][i] <= holds[i] for i in range(resource_count)):
+                # Satisfy the process needs with available resources
+                for i in range(resource_count):
+                    holds[i].difference_update({node})
+                    holds[i].update({node} if alloc_matrix[node][i] > 0 else set())
+
+                # Remove the process and all the resources it holds from the graph
+                for resource in graph_copy:
+                    graph_copy[resource].discard(node)
+                finished.add(node)
+
+                # Restart the search from the beginning
+                break
+            else:
+                queue.extend(graph_copy[node] - finished)
+
+        else:  # The search ended without finding a process that can be completed
+            return True
+
+    # All processes have been completed with available resources
+    return False
+
+# Get user input
+resource_count = int(input("Enter the number of resources: "))
+process_count = int(input("Enter the number of processes: "))
+
+# Initialize the allocation matrix and the request matrix
+alloc_matrix = [[0] * resource_count for _ in range(process_count)]
+req_matrix = [[0] * resource_count for _ in range(process_count)]
+
+# Get the allocation matrix from the user
+print("Enter the allocation matrix:")
+for i in range(process_count):
+    alloc_matrix[i] = list(map(int, input().split()))
+
+# Get the request matrix from the user
+print("Enter the request matrix:")
+for i in range(process_count):
+    req_matrix[i] = list(map(int, input().split()))
+
+# Build the graph of dependencies between resources and processes
+graph = {i: set() for i in range(resource_count)}
+for i in range(process_count):
+    for j in range(resource_count):
+        if alloc_matrix[i][j] == 0 and req_matrix[i][j] > 0:
+            graph[j].add(i)
+
+# Procedure I: Detect the existence of a cycle
+cycle_found = False
+for resource in graph:
+    if detect_cycle(graph, resource):
+        cycle_found = True
+        break
+
+if cycle_found:
+    print("A cycle was detected. Deadlock may occur.")
+else:
+    # Procedure II: Satisfy process needs and remove completed processes
+    deadlock = satisfy_needs(graph, alloc_matrix, req_matrix, resource_count)
+    if deadlock:
+        print("Deadlock may occur.")
+    else:
+        print("No deadlock detected.")
